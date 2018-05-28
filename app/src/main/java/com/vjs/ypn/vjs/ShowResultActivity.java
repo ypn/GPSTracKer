@@ -42,7 +42,7 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
 
     private RecyclerView recyclerView;
     private List<ResultTrackingItem> data = new ArrayList<>();
-    private LinearLayout ln_reset,ln_other_mode;
+    private LinearLayout ln_reset,ln_other_mode,ln_exit;
     private GoogleMap map;
     private TextView tv_time_tracking,tv_d;
 
@@ -70,7 +70,7 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
         tv_d = findViewById(R.id.tv_d);
 
         SharedPreferences prefs = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
-        Integer sessionId = prefs.getInt(Constants.SESSION_TRACKING, -1);
+        Integer sessionId = prefs.getInt(Constants.SESSION_TRACKING_ID, -1);
         if (sessionId != -1) {
             JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, Constants.SERVER_URL + "api/v1/report/get-tracking-detail/" + sessionId, null, new Response.Listener<JSONObject>() {
                 @Override
@@ -147,6 +147,7 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
 
         ln_reset = findViewById(R.id.ln_reset);
         ln_other_mode = findViewById(R.id.ln_other_mode);
+        ln_exit = findViewById(R.id.ln_exit);
 
         ln_reset.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -163,8 +164,22 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
             }
         });
 
+        ln_exit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                System.exit(0);
+            }
+        });
 
 
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        SharedPreferences settings = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
+        settings.edit().clear().commit();
     }
 
     @Override

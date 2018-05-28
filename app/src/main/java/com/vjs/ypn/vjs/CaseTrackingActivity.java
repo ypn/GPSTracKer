@@ -1,6 +1,7 @@
 package com.vjs.ypn.vjs;
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -39,6 +40,10 @@ public class CaseTrackingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SharedPreferences settings = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
+        settings.edit().clear().commit();
+
+
         setContentView(R.layout.activity_case_tracking);
 
         queue = Volley.newRequestQueue(this);

@@ -5,6 +5,7 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -54,10 +55,11 @@ public class UpdatePosition extends Service implements
     private boolean inCheckpoint = false;
     private String object_name;
     private int object_id,mode_id;
-    private Integer sessionID;
+    private Integer sessionID = -1;
     private Integer currenIndexCheckPoint = -1;
-    Date time_start;
-    private PowerManager.WakeLock mWakelock;
+    Long time_start;
+    SharedPreferences sharedPreferences;
+//    private PowerManager.WakeLock mWakelock;
     private String strCheckPoints;
 
     private Socket mSocket;
@@ -76,15 +78,20 @@ public class UpdatePosition extends Service implements
         return null;
     }
 
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        mGoogleApiClient.connect();
         aaa = new ArrayList<>();
+        //Khi service được khởi tạo lần đầu tiên.
+//        strCheckPoints = sharedPreferences.getString("CHECKPOINTS",null);
+//        object_name = intent.getStringExtra("OBJECT_NAME");
+//        object_id = intent.getIntExtra("ID_OBJECT_TRACKING",0);
+//        mode_id = Integer.parseInt(intent.getStringExtra("ID_MODE_TRACKING"));
 
-        strCheckPoints = intent.getStringExtra("CHECKPOINTS");
-        object_name = intent.getStringExtra("OBJECT_NAME");
-        object_id = intent.getIntExtra("ID_OBJECT_TRACKING",0);
-        mode_id = Integer.parseInt(intent.getStringExtra("ID_MODE_TRACKING"));
+        strCheckPoints = sharedPreferences.getString("CHECKPOINTS",null);
+        object_name = sharedPreferences.getString("OBJECT_NAME",null);
+        object_id = sharedPreferences.getInt("ID_OBJECT_TRACKING",0);
+        mode_id = Integer.parseInt(sharedPreferences.getString("ID_MODE_TRACKING",null));
 
         try {
             JSONArray jsonArrayCheckpoints = new JSONArray(strCheckPoints);
@@ -116,6 +123,31 @@ public class UpdatePosition extends Service implements
     @Override
     public void onCreate() {
         super.onCreate();
+
+        sharedPreferences = getSharedPreferences(Constants.SESSION_TRACKING,MODE_PRIVATE);
+        sessionID = sharedPreferences.getInt(Constants.SESSION_TRACKING_ID,sessionID);
+        inCheckpoint = sharedPreferences.getBoolean("IN_CHECKPOINT",false);
+        time_start = sharedPreferences.getLong("time_start_checkpoint",new Date().getTime());
+
+
+        if(sessionID == -1){
+            confirmCreateNewSession();
+        }
+
+        mSocket.connect();
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        // Create the LocationRequest object
+        mLocationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(1 * 1000)// 10 seconds, in milliseconds
+                .setFastestInterval(1 * 1000); // 1 second, in milliseconds
+
+        mGoogleApiClient.connect();
+
         Intent notificationIntent = new Intent(this, InTrackingActivity.class);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
@@ -129,23 +161,12 @@ public class UpdatePosition extends Service implements
 
         startForeground(1992, notification);
 
-        confirmCreateNewSession();
-        mSocket.connect();
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-        // Create the LocationRequest object
-        mLocationRequest = LocationRequest.create()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(1 * 1000)// 10 seconds, in milliseconds
-                .setFastestInterval(1 * 1000); // 1 second, in milliseconds
 
     }
 
     @Override
     public void onDestroy() {
+
         if (mGoogleApiClient.isConnected()) {
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
             mGoogleApiClient.disconnect();
@@ -166,13 +187,9 @@ public class UpdatePosition extends Service implements
             mSocket.disconnect();
             mSocket.off();
         }
-
-        if (mWakelock != null) {
-            mWakelock.release();
-        }
-
         super.onDestroy();
     }
+
 
     @Override
     public void onLocationChanged(Location crrLoc) {
@@ -204,7 +221,8 @@ public class UpdatePosition extends Service implements
 
                 Date time_end = new Date();
 
-                long time_diff = time_end.getTime() - time_start.getTime();
+
+                long time_diff = time_end.getTime() - time_start ;
 
                 aaa.get(currenIndexCheckPoint).setTotal_time((int) (aaa.get(currenIndexCheckPoint).getTotal_time() + time_diff/1000));
 
@@ -219,6 +237,8 @@ public class UpdatePosition extends Service implements
                     mSocket.emit("session_step_out_checkpoint",jso);
                     inCheckpoint = false;
                     currenIndexCheckPoint = -1;
+                    sharedPreferences.edit().remove("CURRENT_CHECKPOINT");
+                    sharedPreferences.edit().remove("time_start_checkpoint");
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -232,9 +252,11 @@ public class UpdatePosition extends Service implements
                 if(PolyUtil.containsLocation(crrLoc.getLatitude(),crrLoc.getLongitude(),lln,false)){
                     Log.e("Xe vao checkpoint","Xe vao checkpoint");
                     currenIndexCheckPoint = i;
+                    sharedPreferences.edit().putInt("CURRENT_CHECKPOINT",currenIndexCheckPoint);
                     inCheckpoint = true;
-
-                    time_start = new Date();
+                    sharedPreferences.edit().putBoolean("IN_CHECKPOINT",inCheckpoint);
+                    time_start = new Date().getTime();
+                    sharedPreferences.edit().putLong("time_start_checkpoint",time_start);
 
                     JSONObject jsonObject = new JSONObject();
                     try {
@@ -274,26 +296,25 @@ public class UpdatePosition extends Service implements
             Log.e("Background Service","Không có location");
         }
         else {
-            try{
+            if(sessionID == -1){
+                try{
 
-                JSONObject position = new JSONObject();
-                position.put("lat", location.getLatitude());
-                position.put("lng" ,location.getLongitude());
-                position.put("checkpoint",strCheckPoints);
-               // Log.e("Bienso",strBienso);
-                position.put("object_name",object_name);
-                position.put("mode_id",mode_id);
-                position.put("object_id",object_id);
+                    JSONObject position = new JSONObject();
+                    position.put("lat", location.getLatitude());
+                    position.put("lng" ,location.getLongitude());
+                    position.put("checkpoint",strCheckPoints);
 
-                mSocket.emit("new_car_tracking_detected", position);
+                    position.put("object_name",object_name);
+                    position.put("mode_id",mode_id);
+                    position.put("object_id",object_id);
 
-                Log.e("BACKGROUND SERVICE","Start new tracking");
+                    mSocket.emit("new_car_tracking_detected", position);
 
-                PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-                mWakelock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyWakelockTag");
-                mWakelock.acquire();
-            }catch (JSONException e){
-                e.printStackTrace();
+                    Log.e("BACKGROUND SERVICE","Start new tracking");
+
+                }catch (JSONException e){
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -309,8 +330,8 @@ public class UpdatePosition extends Service implements
                     sessionID = response.getInt("id");
                     Log.e("SESSION ID",sessionID.toString());
 
-                    SharedPreferences.Editor editor = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE).edit();
-                    editor.putInt(Constants.SESSION_TRACKING, sessionID);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putInt(Constants.SESSION_TRACKING_ID, sessionID);
                     editor.apply();
                 }else{
                     Log.e("errorrr","khong thanh cong");

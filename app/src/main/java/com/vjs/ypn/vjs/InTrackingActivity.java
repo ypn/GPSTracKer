@@ -35,8 +35,8 @@ public class InTrackingActivity extends AppCompatActivity {
         tv_quangduong = findViewById(R.id.tv_quangduong);
 
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                mMessageReceiver, new IntentFilter("intentKey"));
+//        LocalBroadcastManager.getInstance(this).registerReceiver(
+//                mMessageReceiver, new IntentFilter("intentKey"));
 
         btn_stop_tracking = findViewById(R.id.btn_stop_tracking);
         tv_time_tracked = findViewById(R.id.tv_time_tracked);
@@ -51,17 +51,21 @@ public class InTrackingActivity extends AppCompatActivity {
 
                 public void onFinish() {
                     //Start service
-                    Intent intent = new Intent(mContext,UpdatePosition.class);
-                    intent.putExtra("CHECKPOINTS",getIntent().getStringExtra("CHECKPOINTS"));
-                    intent.putExtra("OBJECT_NAME",getIntent().getStringExtra("BIENSO"));
-                    intent.putExtra("ID_OBJECT_TRACKING",getIntent().getIntExtra("ID_OBJECT_TRACKING",0));
-                    intent.putExtra("ID_MODE_TRACKING",getIntent().getStringExtra("ID_MODE_TRACKING"));
-                    startService(intent);
+                    SharedPreferences.Editor editor = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE).edit();
 
-                    SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
-                    SharedPreferences.Editor editor = sharedPref.edit();
+
+                    Intent intent = new Intent(mContext,UpdatePosition.class);
+//                    intent.putExtra("CHECKPOINTS",getIntent().getStringExtra("CHECKPOINTS"));
+//                    intent.putExtra("OBJECT_NAME",getIntent().getStringExtra("BIENSO"));
+//                    intent.putExtra("ID_OBJECT_TRACKING",getIntent().getIntExtra("ID_OBJECT_TRACKING",0));
+//                    intent.putExtra("ID_MODE_TRACKING",getIntent().getStringExtra("ID_MODE_TRACKING"));
+                    editor.putString("CHECKPOINTS",getIntent().getStringExtra("CHECKPOINTS"));
+                    editor.putString("OBJECT_NAME",getIntent().getStringExtra("BIENSO"));
+                    editor.putInt("ID_OBJECT_TRACKING",getIntent().getIntExtra("ID_OBJECT_TRACKING",0));
+                    editor.putString("ID_MODE_TRACKING",getIntent().getStringExtra("ID_MODE_TRACKING"));
                     editor.putLong("time_start",SystemClock.uptimeMillis());
                     editor.commit();
+                    startService(intent);
 
                     startTime = SystemClock.uptimeMillis();
                     customHandler.postDelayed(updateTimerThread, 0);
@@ -96,7 +100,7 @@ public class InTrackingActivity extends AppCompatActivity {
             }.start();
         }else{
 
-            SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences sharedPref = getSharedPreferences(Constants.SESSION_TRACKING,Context.MODE_PRIVATE);
             startTime = sharedPref.getLong("time_start",SystemClock.uptimeMillis());
             customHandler.postDelayed(updateTimerThread, 0);
 
@@ -164,15 +168,15 @@ public class InTrackingActivity extends AppCompatActivity {
         }
         return false;
     }
-
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String v  = intent.getStringExtra("v");
-            String d = intent.getStringExtra("d");
-            tv_quangduong.setText(d);
-            vantoc.setText(v);
-
-        }
-    };
+//
+//    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            String v  = intent.getStringExtra("v");
+//            String d = intent.getStringExtra("d");
+//            tv_quangduong.setText(d);
+//            vantoc.setText(v);
+//
+//        }
+//    };
 }
