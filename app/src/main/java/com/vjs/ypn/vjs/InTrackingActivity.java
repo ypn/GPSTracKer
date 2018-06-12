@@ -118,7 +118,11 @@ public class InTrackingActivity extends AppCompatActivity {
                         public void onClick(DialogInterface dialogInterface, int i) {
                             //Dừng theo dõi
                             stopService(new Intent(mContext,UpdatePosition.class));
-                            startActivity(new Intent(InTrackingActivity.this,ShowResultActivity.class));
+                            Intent intent = new Intent(InTrackingActivity.this,ShowResultActivity.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            intent.putExtra("EXIT", true);
+                            startActivity(new Intent(intent));
+                            finish();
                         }
                     });
 

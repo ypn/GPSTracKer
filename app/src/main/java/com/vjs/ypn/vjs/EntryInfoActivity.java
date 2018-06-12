@@ -2,6 +2,7 @@ package com.vjs.ypn.vjs;
 
 import android.app.Fragment;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -49,6 +50,7 @@ public class EntryInfoActivity extends AppCompatActivity {
     private String objectTracking = new String();
     private int idObjectTracking;
     private JSONArray listData;
+    private int time_interval;
 
     private TextView tv_don_vi,tv_so_dien_thoai,tv_cmt,tv_ma_so,tv_object_owner;
     String url ="http://113.160.215.214:8092/api/v1/mobile/";
@@ -75,6 +77,11 @@ public class EntryInfoActivity extends AppCompatActivity {
             data_mode = new JSONObject(getIntent().getStringExtra("DATA_MODE"));
             actionBar.setTitle(data_mode.getString("name"));
             modeId  = data_mode.getInt("id");
+            time_interval = data_mode.getInt("time_frequency");
+            SharedPreferences settings = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
+            settings.edit().putInt("TIME_INTERVAL" ,5);
+            settings.edit().commit();
+
             tvTitleObjectTracing.setText(data_mode.getString("display_property"));
 
         } catch (JSONException e) {
@@ -185,7 +192,6 @@ public class EntryInfoActivity extends AppCompatActivity {
                 return  params;
             }
         };
-
 
         queue.add(stringRequest);
     }

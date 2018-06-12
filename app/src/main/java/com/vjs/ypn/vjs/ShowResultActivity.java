@@ -42,7 +42,7 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
 
     private RecyclerView recyclerView;
     private List<ResultTrackingItem> data = new ArrayList<>();
-    private LinearLayout ln_reset,ln_other_mode,ln_exit;
+    private LinearLayout ln_reset,ln_other_mode;
     private GoogleMap map;
     private TextView tv_time_tracking,tv_d;
 
@@ -147,7 +147,6 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
 
         ln_reset = findViewById(R.id.ln_reset);
         ln_other_mode = findViewById(R.id.ln_other_mode);
-        ln_exit = findViewById(R.id.ln_exit);
 
         ln_reset.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -164,13 +163,8 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
             }
         });
 
-        ln_exit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                System.exit(0);
-            }
-        });
-
+        SharedPreferences settings = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
+        settings.edit().clear().commit();
 
 
     }

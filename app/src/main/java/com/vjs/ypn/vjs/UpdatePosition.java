@@ -5,14 +5,12 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -57,10 +55,11 @@ public class UpdatePosition extends Service implements
     private int object_id,mode_id;
     private Integer sessionID = -1;
     private Integer currenIndexCheckPoint = -1;
+    private Integer stopCount =0;
     Long time_start;
     SharedPreferences sharedPreferences;
-//    private PowerManager.WakeLock mWakelock;
     private String strCheckPoints;
+    private int time_interval;
 
     private Socket mSocket;
     {
@@ -83,10 +82,14 @@ public class UpdatePosition extends Service implements
     public int onStartCommand(Intent intent, int flags, int startId) {
         aaa = new ArrayList<>();
         //Khi service được khởi tạo lần đầu tiên.
-//        strCheckPoints = sharedPreferences.getString("CHECKPOINTS",null);
-//        object_name = intent.getStringExtra("OBJECT_NAME");
-//        object_id = intent.getIntExtra("ID_OBJECT_TRACKING",0);
-//        mode_id = Integer.parseInt(intent.getStringExtra("ID_MODE_TRACKING"));
+        //strCheckPoints = sharedPreferences.getString("CHECKPOINTS",null);
+        //object_name = intent.getStringExtra("OBJECT_NAME");
+        //object_id = intent.getIntExtra("ID_OBJECT_TRACKING",0);
+        //mode_id = Integer.parseInt(intent.getStringExtra("ID_MODE_TRACKING"));
+
+        if(!mSocket.connected()){
+            mSocket.connect();
+        }
 
         strCheckPoints = sharedPreferences.getString("CHECKPOINTS",null);
         object_name = sharedPreferences.getString("OBJECT_NAME",null);
@@ -125,10 +128,12 @@ public class UpdatePosition extends Service implements
         super.onCreate();
 
         sharedPreferences = getSharedPreferences(Constants.SESSION_TRACKING,MODE_PRIVATE);
-        sessionID = sharedPreferences.getInt(Constants.SESSION_TRACKING_ID,sessionID);
         inCheckpoint = sharedPreferences.getBoolean("IN_CHECKPOINT",false);
         time_start = sharedPreferences.getLong("time_start_checkpoint",new Date().getTime());
+        sessionID = sharedPreferences.getInt(Constants.SESSION_TRACKING_ID,sessionID);
+        time_interval = sharedPreferences.getInt(Constants.SESSION_TRACKING_ID,time_interval);
 
+        Log.e("TIME_INTERVAL",""+time_interval);
 
         if(sessionID == -1){
             confirmCreateNewSession();
@@ -143,8 +148,8 @@ public class UpdatePosition extends Service implements
         // Create the LocationRequest object
         mLocationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(1 * 1000)// 10 seconds, in milliseconds
-                .setFastestInterval(1 * 1000); // 1 second, in milliseconds
+                .setInterval(time_interval * 1000)// 10 seconds, in milliseconds
+                .setFastestInterval(time_interval * 1000); // 1 second, in milliseconds
 
         mGoogleApiClient.connect();
 
@@ -160,9 +165,8 @@ public class UpdatePosition extends Service implements
                 .setContentIntent(pendingIntent).build();
 
         startForeground(1992, notification);
-
-
     }
+
 
     @Override
     public void onDestroy() {
@@ -194,11 +198,29 @@ public class UpdatePosition extends Service implements
     @Override
     public void onLocationChanged(Location crrLoc) {
 
-        if(!(crrLoc.getSpeed() >0 && sessionID!=null)){
-            return;
+//        Log.e("LOCATION_UPDATE","=====================");
+//        Log.e("LOCATION_UPDATE_ACC","" + crrLoc.getAccuracy());
+//        Log.e("LOCATION_UPDATE_SPEED","" + crrLoc.getSpeed());
+//        Log.e("LOCATION_UPDATE","=====================");
+//
+//        Log.e("Background service", "Location change");
+
+        if(crrLoc.getSpeed()==0){
+            stopCount ++;
+        }else{
+            stopCount = 0;
+            if(!mSocket.connected()){
+                mSocket.connect();
+            }
         }
 
-        Log.e("Background service", "Location change");
+        if(stopCount > 10 && mSocket.connected()){
+            mSocket.disconnect();
+            mSocket.close();
+            mSocket.off();
+        }
+
+
         JSONObject position = new JSONObject();
         try {
             position.put("lat", crrLoc.getLatitude());
@@ -223,6 +245,7 @@ public class UpdatePosition extends Service implements
 
 
                 long time_diff = time_end.getTime() - time_start ;
+
 
                 aaa.get(currenIndexCheckPoint).setTotal_time((int) (aaa.get(currenIndexCheckPoint).getTotal_time() + time_diff/1000));
 
