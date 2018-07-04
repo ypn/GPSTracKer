@@ -11,19 +11,21 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 
+import com.google.android.gms.location.LocationServices;
+
 public class SplashScreenActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash_screen);
-        View v = findViewById(R.id.iv_logo);
+        //View v = findViewById(R.id.iv_logo);
         //startFadeInAnimation();
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                if(!isServiceRunning(UpdatePosition.class)){
+                if(!isServiceRunning(AppService.class)){
                     Intent i =  new Intent(SplashScreenActivity.this,CaseTrackingActivity.class);
                     startActivity(i);
                 }else{

@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import com.android.volley.Request;
@@ -25,7 +26,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import org.json.JSONArray;
@@ -70,12 +70,14 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
         tv_d = findViewById(R.id.tv_d);
 
         SharedPreferences prefs = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
-        Integer sessionId = prefs.getInt(Constants.SESSION_TRACKING_ID, -1);
+        Integer sessionId = prefs.getInt(Constants.PREFERKEY_SESSION_TRACKING_ID, -1);
+        Toast.makeText(this,"sdfsdfsd:" + sessionId,Toast.LENGTH_SHORT).show();
         if (sessionId != -1) {
             JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, Constants.SERVER_URL + "api/v1/report/get-tracking-detail/" + sessionId, null, new Response.Listener<JSONObject>() {
                 @Override
                 public void onResponse(JSONObject response) {
-                    Log.e("RESULT_TRACKING",response.toString());
+                    SharedPreferences settings = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
+                    settings.edit().clear().commit();
                     dialog.dismiss();
                     tv_d.setText(getIntent().getStringExtra("d")+ "met");
                     try {
@@ -143,6 +145,8 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
             });
 
             queue.add(jsonObjectRequest);
+        }else{
+            dialog.dismiss();
         }
 
         ln_reset = findViewById(R.id.ln_reset);
@@ -162,10 +166,6 @@ public class ShowResultActivity extends AppCompatActivity implements OnMapReadyC
                 startActivity(new Intent(ShowResultActivity.this,CaseTrackingActivity.class));
             }
         });
-
-        SharedPreferences settings = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
-        settings.edit().clear().commit();
-
 
     }
 

@@ -39,7 +39,7 @@
         <activity android:name=".InTrackingActivity" />
         <activity android:name=".ShowResultActivity" />
         <activity android:name=".MapActivity"></activity>
-        <service android:name=".UpdatePosition" />
+        <service android:name=".AppService" />
     </application>
 
 </manifest>

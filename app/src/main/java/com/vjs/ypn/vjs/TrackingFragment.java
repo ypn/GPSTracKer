@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -54,8 +55,9 @@ public class TrackingFragment extends Fragment implements OnMapReadyCallback {
     private TextView tv_object_tracking;
 
     private OnFragmentInteractionListener mListener;
+    private FloatingActionButton btn_start_tracking;
 
-    private Button btnToggleMap,btn_start_tracking;
+    private Button btnToggleMap;
     RecyclerView mRecyclerView;
     RecyclerViewAdapter mRcvAdapter;
     List<CheckPoints> data;

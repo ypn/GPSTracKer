@@ -130,8 +130,8 @@ public class UpdatePosition extends Service implements
         sharedPreferences = getSharedPreferences(Constants.SESSION_TRACKING,MODE_PRIVATE);
         inCheckpoint = sharedPreferences.getBoolean("IN_CHECKPOINT",false);
         time_start = sharedPreferences.getLong("time_start_checkpoint",new Date().getTime());
-        sessionID = sharedPreferences.getInt(Constants.SESSION_TRACKING_ID,sessionID);
-        time_interval = sharedPreferences.getInt(Constants.SESSION_TRACKING_ID,time_interval);
+        sessionID = sharedPreferences.getInt(Constants.PREFERKEY_SESSION_TRACKING_ID,sessionID);
+        time_interval = sharedPreferences.getInt(Constants.PREFERKEY_TIME_INTERVAL,time_interval);
 
         Log.e("TIME_INTERVAL",""+time_interval);
 
@@ -246,7 +246,6 @@ public class UpdatePosition extends Service implements
 
                 long time_diff = time_end.getTime() - time_start ;
 
-
                 aaa.get(currenIndexCheckPoint).setTotal_time((int) (aaa.get(currenIndexCheckPoint).getTotal_time() + time_diff/1000));
 
                 JSONObject jso = new JSONObject();
@@ -305,8 +304,6 @@ public class UpdatePosition extends Service implements
     @Override
     public void onConnected(@Nullable Bundle bundle) {
 
-        Log.e("BACKGROUND SERVICE","connect locattion");
-
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ) {
              Log.e("Background service","Chưa khai báo permission trong manifes");
              this.stopSelf();
@@ -351,16 +348,14 @@ public class UpdatePosition extends Service implements
                 Log.e("status",response.getString("status"));
                 if(response.getInt("status") == 201){
                     sessionID = response.getInt("id");
-                    Log.e("SESSION ID",sessionID.toString());
 
                     SharedPreferences.Editor editor = sharedPreferences.edit();
-                    editor.putInt(Constants.SESSION_TRACKING_ID, sessionID);
-                    editor.apply();
+                    editor.putInt(Constants.PREFERKEY_SESSION_TRACKING_ID, sessionID);
+                    editor.commit();
                 }else{
                     Log.e("errorrr","khong thanh cong");
                 }
             } catch (JSONException e) {
-                Log.e("Errprrr",e.toString());
                 e.printStackTrace();
             }
         }

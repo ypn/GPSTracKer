@@ -11,23 +11,16 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
-import android.widget.Toast;
-
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class CaseTrackingActivity extends AppCompatActivity {
 
@@ -42,8 +35,6 @@ public class CaseTrackingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         SharedPreferences settings = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
         settings.edit().clear().commit();
-
-
         setContentView(R.layout.activity_case_tracking);
 
         queue = Volley.newRequestQueue(this);
@@ -80,6 +71,7 @@ public class CaseTrackingActivity extends AppCompatActivity {
     protected void onDestroy() {
         pbLoad.setVisibility(View.INVISIBLE);
         super.onDestroy();
+
     }
 
     private void createRadioGroup(){

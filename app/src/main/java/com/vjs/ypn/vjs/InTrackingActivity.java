@@ -1,5 +1,6 @@
 package com.vjs.ypn.vjs;
 
+import android.Manifest;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -7,43 +8,71 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 
-public class InTrackingActivity extends AppCompatActivity {
+
+public class InTrackingActivity extends AppCompatActivity implements
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,LocationListener {
 
     private Button btn_stop_tracking;
     private Context mContext;
-    private TextView vantoc,tv_quangduong,tv_time_tracked;
+    private LocationRequest mLocationRequest;
+    private GoogleApiClient mGoogleApiClient;
+    private TextView tv_quangduong,tv_time_tracked;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_in_tracking);
         mContext = this;
-        vantoc = findViewById(R.id.vantoc);
         tv_quangduong = findViewById(R.id.tv_quangduong);
-
-
-//        LocalBroadcastManager.getInstance(this).registerReceiver(
-//                mMessageReceiver, new IntentFilter("intentKey"));
 
         btn_stop_tracking = findViewById(R.id.btn_stop_tracking);
         tv_time_tracked = findViewById(R.id.tv_time_tracked);
 
 
 
-        if(!isServiceRunning(UpdatePosition.class)){
+        if(!isServiceRunning(AppService.class)){
+
+            mLocationRequest = LocationRequest.create()
+                    .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                    .setInterval(10 * 1000)// 10 seconds, in milliseconds
+                    .setFastestInterval(10 * 1000); // 1 second, in milliseconds
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ) {
+
+                return;
+            }
+
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+
+            mGoogleApiClient.connect();
+
             new CountDownTimer(6*1000, 1000) {
                 public void onTick(long millisUntilFinished) {
                     btn_stop_tracking.setText(""+ millisUntilFinished / 1000);
@@ -52,13 +81,7 @@ public class InTrackingActivity extends AppCompatActivity {
                 public void onFinish() {
                     //Start service
                     SharedPreferences.Editor editor = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE).edit();
-
-
-                    Intent intent = new Intent(mContext,UpdatePosition.class);
-//                    intent.putExtra("CHECKPOINTS",getIntent().getStringExtra("CHECKPOINTS"));
-//                    intent.putExtra("OBJECT_NAME",getIntent().getStringExtra("BIENSO"));
-//                    intent.putExtra("ID_OBJECT_TRACKING",getIntent().getIntExtra("ID_OBJECT_TRACKING",0));
-//                    intent.putExtra("ID_MODE_TRACKING",getIntent().getStringExtra("ID_MODE_TRACKING"));
+                    Intent intent = new Intent(mContext,AppService.class);
                     editor.putString("CHECKPOINTS",getIntent().getStringExtra("CHECKPOINTS"));
                     editor.putString("OBJECT_NAME",getIntent().getStringExtra("BIENSO"));
                     editor.putInt("ID_OBJECT_TRACKING",getIntent().getIntExtra("ID_OBJECT_TRACKING",0));
@@ -82,7 +105,8 @@ public class InTrackingActivity extends AppCompatActivity {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
                                     //Dừng theo dõi
-                                    stopService(new Intent(mContext,UpdatePosition.class));
+                                    stopTracking();
+                                    //stopService(new Intent(mContext,AppService.class));
                                     startActivity(new Intent(InTrackingActivity.this,ShowResultActivity.class).putExtra("d",tv_quangduong.getText()));
 
                                     stopTimer = true;
@@ -116,8 +140,10 @@ public class InTrackingActivity extends AppCompatActivity {
                     alertBuilder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
+
                             //Dừng theo dõi
-                            stopService(new Intent(mContext,UpdatePosition.class));
+                            stopTracking();
+                            //stopService(new Intent(mContext,AppService.class));
                             Intent intent = new Intent(InTrackingActivity.this,ShowResultActivity.class);
                             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                             intent.putExtra("EXIT", true);
@@ -163,6 +189,14 @@ public class InTrackingActivity extends AppCompatActivity {
 
     };
 
+
+    private void stopTracking() {
+        Intent intent = new Intent("custom-event-name");
+        // You can also include some extra data.
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+
     private boolean isServiceRunning(Class<?> serviceClass){
         ActivityManager manager = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
         for(ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)){
@@ -172,15 +206,34 @@ public class InTrackingActivity extends AppCompatActivity {
         }
         return false;
     }
-//
-//    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            String v  = intent.getStringExtra("v");
-//            String d = intent.getStringExtra("d");
-//            tv_quangduong.setText(d);
-//            vantoc.setText(v);
-//
-//        }
-//    };
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ) {
+            Log.e("Background_service","Chưa khai báo permission trong manifes");
+            return;
+        }
+
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        mGoogleApiClient.disconnect();
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+    }
 }

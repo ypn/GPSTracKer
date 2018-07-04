@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -79,8 +80,7 @@ public class EntryInfoActivity extends AppCompatActivity {
             modeId  = data_mode.getInt("id");
             time_interval = data_mode.getInt("time_frequency");
             SharedPreferences settings = getSharedPreferences(Constants.SESSION_TRACKING, MODE_PRIVATE);
-            settings.edit().putInt("TIME_INTERVAL" ,5);
-            settings.edit().commit();
+            settings.edit().putInt(Constants.PREFERKEY_TIME_INTERVAL ,time_interval).commit();
 
             tvTitleObjectTracing.setText(data_mode.getString("display_property"));
 
@@ -113,6 +113,13 @@ public class EntryInfoActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Intent myIntent = new Intent(getApplicationContext(), CaseTrackingActivity.class);
+        startActivityForResult(myIntent, 0);
+        return true;
     }
 
     @Override
